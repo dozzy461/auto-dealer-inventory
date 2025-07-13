@@ -1,9 +1,51 @@
 version: '3.8'
+
 services:
   backend:
-    build: ./backend
-    ports: ["5000:5000"]
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports: 
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://postgres:dealer123@db:5432/dealership
+    depends_on:
+      - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   frontend:
-    build: ./frontend
-    ports: ["3000:3000"]
-    depends_on: ["backend"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://backend:5000
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_PASSWORD: dealer123
+      POSTGRES_DB: dealership
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
